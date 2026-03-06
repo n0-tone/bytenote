@@ -2,11 +2,13 @@ package com.notone.protodatastore
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,25 +18,41 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
-import androidx.lifecycle.lifecycleScope
 
 class MainActivity : ComponentActivity() {
 
@@ -54,9 +72,9 @@ class MainActivity : ComponentActivity() {
                 QuickNotesMainScreen(
                     isDarkMode = isDarkMode,
                     userPreferences = userPreferences,
-                    onToggleDarkMode = { enabled ->
+                    onToggleDarkMode = {
                         lifecycleScope.launch {
-                            userPreferences.saveDarkMode(enabled)
+                            userPreferences.saveDarkMode(!isDarkMode)
                         }
                     },
                     onOpenAddNote = {
@@ -73,33 +91,41 @@ class MainActivity : ComponentActivity() {
 private fun QuickNotesMainScreen(
     isDarkMode: Boolean,
     userPreferences: UserPreferences,
-    onToggleDarkMode: (Boolean) -> Unit,
+    onToggleDarkMode: () -> Unit,
     onOpenAddNote: () -> Unit
 ) {
-    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    val persistedNotes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    var notes by remember { mutableStateOf(emptyList<QuickNote>()) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    LaunchedEffect(persistedNotes) {
+        notes = persistedNotes
+    }
+
+    fun persistNotes(updated: List<QuickNote>) {
+        notes = updated
+        scope.launch {
+            userPreferences.saveNotes(updated)
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("QuickNotes") },
+                title = { Text("ByteNotes") },
                 actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("Dark", style = MaterialTheme.typography.bodyMedium)
-                        Switch(
-                            checked = isDarkMode,
-                            onCheckedChange = onToggleDarkMode
-                        )
+                    IconButton(onClick = onToggleDarkMode) {
+                        val modeIcon = if (isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode
+                        val description = if (isDarkMode) "Ativar modo claro" else "Ativar modo escuro"
+                        Icon(modeIcon, contentDescription = description)
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onOpenAddNote) {
-                Icon(Icons.Default.Add, contentDescription = "Adicionar Nota")
+                Icon(Icons.Filled.Add, contentDescription = "Nova nota")
             }
         }
     ) { paddingValues ->
@@ -123,19 +149,140 @@ private fun QuickNotesMainScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                itemsIndexed(notes) { _, note ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Text(
-                            text = note,
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                itemsIndexed(
+                    items = notes,
+                    key = { _, note -> note.id }
+                ) { index, note ->
+                    NoteRow(
+                        note = note,
+                        index = index,
+                        total = notes.size,
+                        onDelete = {
+                            val updated = notes.toMutableList().apply { removeAt(index) }
+                            persistNotes(updated)
+                            Toast.makeText(context, "Nota apagada", Toast.LENGTH_SHORT).show()
+                        },
+                        onMove = { from, to ->
+                            if (from == to || from !in notes.indices || to !in notes.indices) return@NoteRow
+                            val updated = notes.toMutableList()
+                            val movedItem = updated.removeAt(from)
+                            updated.add(to, movedItem)
+                            persistNotes(updated)
+                        }
+                    )
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NoteRow(
+    note: QuickNote,
+    index: Int,
+    total: Int,
+    onDelete: () -> Unit,
+    onMove: (Int, Int) -> Unit
+) {
+    var itemHeightPx by remember { mutableIntStateOf(1) }
+    var dragAccumulator by remember { mutableFloatStateOf(0f) }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Apagar nota",
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = "Apagar",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
+            }
+        },
+        content = {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { itemHeightPx = it.height.coerceAtLeast(1) }
+                    .pointerInput(index, total, itemHeightPx) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { dragAccumulator = 0f },
+                            onDragEnd = { dragAccumulator = 0f },
+                            onDragCancel = { dragAccumulator = 0f },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragAccumulator += dragAmount.y
+                                val threshold = itemHeightPx * 0.6f
+
+                                if (dragAccumulator > threshold && index < total - 1) {
+                                    onMove(index, index + 1)
+                                    dragAccumulator = 0f
+                                } else if (dragAccumulator < -threshold && index > 0) {
+                                    onMove(index, index - 1)
+                                    dragAccumulator = 0f
+                                }
+                            }
+                        )
+                    }
+                    .padding(vertical = 1.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        androidx.compose.foundation.layout.Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = note.title,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = note.content,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 3
+                            )
+                        }
+                    }
+                    Text(
+                        text = "::",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(start = 12.dp)
+                    )
+                }
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+    )
 }

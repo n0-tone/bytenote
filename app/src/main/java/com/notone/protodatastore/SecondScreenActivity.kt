@@ -1,17 +1,17 @@
 package com.notone.protodatastore
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,10 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
-import androidx.lifecycle.lifecycleScope
 
 class SecondScreenActivity : ComponentActivity() {
 
@@ -65,15 +66,54 @@ private fun AddNoteScreen(
 ) {
     val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
-    var inputText by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+
+    fun saveAndClose() {
+        val cleanTitle = title.trim()
+        val cleanContent = content.trim()
+
+        if (cleanTitle.isBlank() && cleanContent.isBlank()) {
+            Toast.makeText(context, "Escreve alguma coisa primeiro", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val finalTitle = cleanTitle.ifBlank { "Sem titulo" }
+        val newNote = QuickNote(
+            id = System.currentTimeMillis(),
+            title = finalTitle,
+            content = cleanContent
+        )
+
+        scope.launch {
+            userPreferences.saveNotes(notes + newNote)
+            onBack()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nova Nota") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+                title = {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        placeholder = { Text("Titulo") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                    )
+                },
+                actions = {
+                    IconButton(onClick = ::saveAndClose) {
+                        Icon(Icons.Filled.Save, contentDescription = "Guardar")
                     }
                 }
             )
@@ -83,43 +123,18 @@ private fun AddNoteScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp)
         ) {
             OutlinedTextField(
-                value = inputText,
-                onValueChange = { inputText = it },
-                label = { Text("O que tens em mente?") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                value = content,
+                onValueChange = { content = it },
+                placeholder = { Text("Escreve a tua nota...") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                textStyle = MaterialTheme.typography.bodyLarge,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        val trimmed = inputText.trim()
-                        if (trimmed.isNotEmpty()) {
-                            scope.launch {
-                                userPreferences.saveNotes(notes + trimmed)
-                                onBack() // Volta para a lista após guardar
-                            }
-                        }
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Guardar")
-                }
-                
-                Button(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cancelar")
-                }
-            }
         }
     }
 }

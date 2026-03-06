@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <style name="Theme.ProtoDatastore" parent="android:Theme.Material.NoActionBar" />
 
     <style name="Theme.ProtoDatastore.Splash" parent="Theme.ProtoDatastore">
+        <item name="android:windowSplashScreenBackground">#121212</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#121212</item>
         <item name="android:windowBackground">@android:color/black</item>
     </style>
 </resources>

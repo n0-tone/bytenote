@@ -124,11 +124,19 @@ private fun QuickNotesListScreen(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Text(
-                            text = note,
+                        androidx.compose.foundation.layout.Column(
                             modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = note.title,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = note.content,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
                 }
             }
