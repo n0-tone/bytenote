@@ -41,6 +41,7 @@ class NotesService(private val context: Context) {
                 val obj = jsonArray.getJSONObject(i)
                 list.add(
                     Note(
+                        id = obj.getLong("id"),
                         title = obj.optString("title", ""),
                         content = obj.optString("content", ""),
                         imageUri = if (obj.has("imageUri") && !obj.isNull("imageUri")) obj.getString("imageUri") else null
