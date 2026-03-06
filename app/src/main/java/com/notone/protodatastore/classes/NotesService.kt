@@ -57,6 +57,7 @@ class NotesService(private val context: Context) {
         val jsonArray = JSONArray()
         notes.forEach { note ->
             val obj = JSONObject()
+            obj.put("id", note.id)
             obj.put("title", note.title)
             obj.put("content", note.content)
             if (note.imageUri != null) {
