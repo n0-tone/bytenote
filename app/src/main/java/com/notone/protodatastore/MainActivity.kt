@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -41,17 +40,21 @@ import coil3.compose.AsyncImage
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.classes.NotesService
+import com.notone.protodatastore.classes.UserPreferencesService
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var userPreferences: UserPreferences
+    private lateinit var userPreferences: UserPreferencesService
+    private lateinit var notesService: NotesService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        userPreferences = UserPreferences(this)
+        userPreferences = UserPreferencesService(this)
+        notesService = NotesService(this)
 
         setContent {
-            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
+            val isDarkMode by userPreferences.getDarkMode().collectAsState(initial = false)
 
             ProtoDatastoreTheme(
                 darkTheme = isDarkMode,
@@ -59,7 +62,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 QuickNotesMainScreen(
                     isDarkMode = isDarkMode,
-                    userPreferences = userPreferences,
+                    notesService = notesService,
                     onToggleDarkMode = { enabled ->
                         lifecycleScope.launch {
                             userPreferences.saveDarkMode(enabled)
@@ -78,11 +81,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun QuickNotesMainScreen(
     isDarkMode: Boolean,
-    userPreferences: UserPreferences,
+    notesService: NotesService,
     onToggleDarkMode: (Boolean) -> Unit,
     onOpenAddNote: () -> Unit
 ) {
-    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    val notes by notesService.getNotes().collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {

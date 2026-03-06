@@ -44,25 +44,30 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
-import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.classes.NotesService
+import com.notone.protodatastore.classes.UserPreferencesService
+import com.notone.protodatastore.models.Note
 
 class SecondScreenActivity : ComponentActivity() {
 
-    private lateinit var userPreferences: UserPreferences
+    private lateinit var userPreferences: UserPreferencesService
+    private lateinit var notesService: NotesService
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        userPreferences = UserPreferences(this)
+        userPreferences = UserPreferencesService(this)
+        notesService = NotesService(this)
 
         setContent {
-            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
+            val isDarkMode by userPreferences.getDarkMode().collectAsState(initial = false)
 
             ProtoDatastoreTheme(
                 darkTheme = isDarkMode,
                 dynamicColor = false
             ) {
                 AddNoteScreen(
-                    userPreferences = userPreferences,
+                    noteRepository = notesService,
                     onBack = { finish() }
                 )
             }
@@ -73,10 +78,10 @@ class SecondScreenActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddNoteScreen(
-    userPreferences: UserPreferences,
+    noteRepository: NotesService,
     onBack: () -> Unit
 ) {
-    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    val notes by noteRepository.getNotes().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     
     var titleText by remember { mutableStateOf("") }
@@ -170,7 +175,7 @@ private fun AddNoteScreen(
                                     content = contentText.trim(),
                                     imageUri = selectedImageUri?.toString()
                                 )
-                                userPreferences.saveNotes(notes + newNote)
+                                noteRepository.saveNotes(notes + newNote)
                                 onBack()
                             }
                         }

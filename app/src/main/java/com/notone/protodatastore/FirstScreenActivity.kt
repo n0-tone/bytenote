@@ -34,17 +34,22 @@ import androidx.compose.ui.unit.dp
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.classes.NotesService
+import com.notone.protodatastore.classes.UserPreferencesService
 
 class FirstScreenActivity : ComponentActivity() {
 
-    private lateinit var userPreferences: UserPreferences
+    private lateinit var userPreferences: UserPreferencesService
+    private lateinit var notesService: NotesService
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        userPreferences = UserPreferences(this)
+        userPreferences = UserPreferencesService(this)
+        notesService = NotesService(this)
 
         setContent {
-            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
+            val isDarkMode by userPreferences.getDarkMode().collectAsState(initial = false)
 
             ProtoDatastoreTheme(
                 darkTheme = isDarkMode,
@@ -52,7 +57,7 @@ class FirstScreenActivity : ComponentActivity() {
             ) {
                 QuickNotesListScreen(
                     isDarkMode = isDarkMode,
-                    userPreferences = userPreferences,
+                    notesService = notesService,
                     onToggleDarkMode = { enabled ->
                         lifecycleScope.launch {
                             userPreferences.saveDarkMode(enabled)
@@ -71,11 +76,11 @@ class FirstScreenActivity : ComponentActivity() {
 @Composable
 private fun QuickNotesListScreen(
     isDarkMode: Boolean,
-    userPreferences: UserPreferences,
+    notesService: NotesService,
     onToggleDarkMode: (Boolean) -> Unit,
     onOpenAddNote: () -> Unit
 ) {
-    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    val notes by notesService.getNotes().collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
@@ -124,7 +129,6 @@ private fun QuickNotesListScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Text(
-                        // Substitua 'content' pelo nome do campo que você definiu no seu arquivo .proto
                         text = note.content,
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge

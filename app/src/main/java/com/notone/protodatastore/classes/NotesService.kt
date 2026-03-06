@@ -1,49 +1,33 @@
-package com.notone.protodatastore
+package com.notone.protodatastore.classes
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.notone.protodatastore.core.PreferencesService
+import com.notone.protodatastore.enums.PreferencesKeysEnum
+import com.notone.protodatastore.models.Note
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
 
-private val Context.datastore by preferencesDataStore(name = "quicknotes_settings")
+class NotesService(private val context: Context) {
 
-data class Note(
-    val title: String,
-    val content: String,
-    val imageUri: String? = null
-)
-
-class UserPreferences(private val context: Context) {
-
-    private val notesJsonKey = stringPreferencesKey(name = "notes_json_v3")
-    private val darkModeKey = booleanPreferencesKey(name = "dark_mode_enabled")
-
-    fun notesFlow(): Flow<List<Note>> {
-        return context.datastore.data.map { preferences ->
-            decodeNotes(preferences[notesJsonKey])
-        }
-    }
+    private val _service = PreferencesService(context)
 
     suspend fun saveNotes(notes: List<Note>) {
-        context.datastore.edit { preferences ->
-            preferences[notesJsonKey] = encodeNotes(notes)
-        }
+        val encodedNotes = encodeNotes(notes)
+        _service.saveValue<String>(
+            encodedNotes,
+            PreferencesKeysEnum.Notes
+        )
     }
 
-    fun darkModeFlow(): Flow<Boolean> {
-        return context.datastore.data.map { preferences ->
-            preferences[darkModeKey] ?: false
-        }
-    }
+    fun getNotes() : Flow<List<Note>> {
+        val encodedNote = _service.getValue<String>(
+            PreferencesKeysEnum.Notes
+        )
 
-    suspend fun saveDarkMode(enabled: Boolean) {
-        context.datastore.edit { preferences ->
-            preferences[darkModeKey] = enabled
+        return encodedNote.map {
+            decodeNotes(it)
         }
     }
 
@@ -68,7 +52,6 @@ class UserPreferences(private val context: Context) {
             emptyList()
         }
     }
-
     private fun encodeNotes(notes: List<Note>): String {
         val jsonArray = JSONArray()
         notes.forEach { note ->
