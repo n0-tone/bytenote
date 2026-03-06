@@ -32,26 +32,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.notone.protodatastore.classes.NotesService
+import com.notone.protodatastore.classes.UserPreferencesService
+import com.notone.protodatastore.models.Note
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
 
 class SecondScreenActivity : ComponentActivity() {
 
-    private lateinit var userPreferences: UserPreferences
+    private lateinit var userService: UserPreferencesService
+    private lateinit var notesService : NotesService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        userPreferences = UserPreferences(this)
+
+        userService = UserPreferencesService(this)
+        notesService = NotesService(this)
 
         setContent {
-            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
+            val isDarkMode by userService.getDarkMode().collectAsState(initial = false)
 
             ProtoDatastoreTheme(
                 darkTheme = isDarkMode,
                 dynamicColor = false
             ) {
                 AddNoteScreen(
-                    userPreferences = userPreferences,
+                    notesService = notesService,
                     onBack = { finish() }
                 )
             }
@@ -62,10 +68,10 @@ class SecondScreenActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddNoteScreen(
-    userPreferences: UserPreferences,
+    notesService: NotesService,
     onBack: () -> Unit
 ) {
-    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    val notes by notesService.getNotes().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -82,14 +88,14 @@ private fun AddNoteScreen(
         }
 
         val finalTitle = cleanTitle.ifBlank { "Sem titulo" }
-        val newNote = QuickNote(
-            id = System.currentTimeMillis(),
+        val newNote = Note(
+            id= System.currentTimeMillis(),
             title = finalTitle,
             content = cleanContent
         )
 
         scope.launch {
-            userPreferences.saveNotes(notes + newNote)
+            notesService.saveNotes(notes + newNote)
             onBack()
         }
     }

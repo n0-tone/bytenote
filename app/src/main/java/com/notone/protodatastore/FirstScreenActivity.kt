@@ -34,17 +34,21 @@ import androidx.compose.ui.unit.dp
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.classes.NotesService
+import com.notone.protodatastore.classes.UserPreferencesService
 
 class FirstScreenActivity : ComponentActivity() {
 
-    private lateinit var userPreferences: UserPreferences
+    private lateinit var userService: UserPreferencesService
+    private lateinit var notesService : NotesService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        userPreferences = UserPreferences(this)
+        userService = UserPreferencesService(this)
+        notesService = NotesService(this)
 
         setContent {
-            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
+            val isDarkMode by userService.getDarkMode().collectAsState(initial = false)
 
             ProtoDatastoreTheme(
                 darkTheme = isDarkMode,
@@ -52,10 +56,10 @@ class FirstScreenActivity : ComponentActivity() {
             ) {
                 QuickNotesListScreen(
                     isDarkMode = isDarkMode,
-                    userPreferences = userPreferences,
+                    notesService = notesService,
                     onToggleDarkMode = { enabled ->
                         lifecycleScope.launch {
-                            userPreferences.saveDarkMode(enabled)
+                            userService.saveDarkMode(enabled)
                         }
                     },
                     onOpenAddNote = {
@@ -71,11 +75,11 @@ class FirstScreenActivity : ComponentActivity() {
 @Composable
 private fun QuickNotesListScreen(
     isDarkMode: Boolean,
-    userPreferences: UserPreferences,
+    notesService: NotesService,
     onToggleDarkMode: (Boolean) -> Unit,
     onOpenAddNote: () -> Unit
 ) {
-    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    val notes by notesService.getNotes().collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {

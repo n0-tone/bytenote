@@ -53,35 +53,40 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.classes.NotesService
+import com.notone.protodatastore.classes.UserPreferencesService
+import com.notone.protodatastore.models.Note
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var userPreferences: UserPreferences
+    private lateinit var userService: UserPreferencesService
+    private lateinit var notesService : NotesService
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 1️Instala a splash screen Android 12+ antes de setContent
+        // Instala a splash screen Android 12+ antes de setContent
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        userPreferences = UserPreferences(this)
+        userService = UserPreferencesService(this)
+        notesService = NotesService(this)
 
-        // 2️⃣ Mantém a splash enquanto carregas dados
+        // Mantém a splash enquanto carregas dados
         splashScreen.setKeepOnScreenCondition {
             // mantém até os dados carregarem
             false
         }
 
         setContent {
-            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
+            val isDarkMode by userService.getDarkMode().collectAsState(initial = false)
             ProtoDatastoreTheme(darkTheme = isDarkMode) {
                 QuickNotesMainScreen(
                     isDarkMode = isDarkMode,
-                    userPreferences = userPreferences,
+                    notesService = notesService,
                     onToggleDarkMode = {
                         lifecycleScope.launch {
-                            userPreferences.saveDarkMode(!isDarkMode)
+                            userService.saveDarkMode(!isDarkMode)
                         }
                     },
                     onOpenAddNote = {
@@ -97,12 +102,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun QuickNotesMainScreen(
     isDarkMode: Boolean,
-    userPreferences: UserPreferences,
+    notesService: NotesService,
     onToggleDarkMode: () -> Unit,
     onOpenAddNote: () -> Unit
 ) {
-    val persistedNotes by userPreferences.notesFlow().collectAsState(initial = emptyList())
-    var notes by remember { mutableStateOf(emptyList<QuickNote>()) }
+    val persistedNotes by notesService.getNotes().collectAsState(initial = emptyList())
+    var notes by remember { mutableStateOf(emptyList<Note>()) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -110,10 +115,10 @@ private fun QuickNotesMainScreen(
         notes = persistedNotes
     }
 
-    fun persistNotes(updated: List<QuickNote>) {
+    fun persistNotes(updated: List<Note>) {
         notes = updated
         scope.launch {
-            userPreferences.saveNotes(updated)
+            notesService.saveNotes(updated)
         }
     }
 
@@ -186,7 +191,7 @@ private fun QuickNotesMainScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteRow(
-    note: QuickNote,
+    note: Note,
     index: Int,
     total: Int,
     onDelete: () -> Unit,
