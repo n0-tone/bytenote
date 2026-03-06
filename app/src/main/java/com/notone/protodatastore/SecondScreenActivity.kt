@@ -7,28 +7,29 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.border
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 
 class SecondScreenActivity : ComponentActivity() {
 
@@ -36,77 +37,115 @@ class SecondScreenActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         userPreferences = UserPreferences(this)
 
         setContent {
-            var inputNumber by remember { mutableStateOf("") }
-            var savedNumber by remember { mutableStateOf(0) }
+            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
 
-            LaunchedEffect(Unit) {
-                userPreferences.getNumber().collect { value ->
-                    savedNumber = value
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            ProtoDatastoreTheme(
+                darkTheme = isDarkMode,
+                dynamicColor = false
             ) {
-                Text(
-                    text = "Saved Number: $savedNumber",
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                BasicTextField(
-                    value = inputNumber,
-                    onValueChange = { inputNumber = it },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.padding(8.dp)
-                        .border(1.dp, Color.Gray)
-                        .padding(8.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(onClick = {
-                    val number = inputNumber.toIntOrNull()
-                    if (number != null) {
+                QuickNotesSecondScreen(
+                    userPreferences = userPreferences,
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = { enabled ->
                         lifecycleScope.launch {
-                            userPreferences.saveNumber(number)
-                            inputNumber = ""
+                            userPreferences.saveDarkMode(enabled)
                         }
+                    },
+                    onBackToMain = {
+                        startActivity(Intent(this@SecondScreenActivity, MainActivity::class.java))
+                        finish()
                     }
-                }) {
-                    Text("Save Number")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(onClick = {
-                        val intent = Intent(this@SecondScreenActivity, FirstScreenActivity::class.java)
-                        startActivity(intent)
-                    }) {
-                        Text("← First Screen")
-                    }
-
-                    Button(onClick = {
-                        val intent = Intent(this@SecondScreenActivity, MainActivity::class.java)
-                        startActivity(intent)
-                    }) {
-                        Text("Main Screen →")
-                    }
-                }
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun QuickNotesSecondScreen(
+    userPreferences: UserPreferences,
+    isDarkMode: Boolean,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onBackToMain: () -> Unit
+) {
+    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+    var inputText by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "QuickNotes - Ecran 2",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Dark")
+                Switch(
+                    checked = isDarkMode,
+                    onCheckedChange = onToggleDarkMode
+                )
+            }
+        }
+
+        OutlinedTextField(
+            value = inputText,
+            onValueChange = { inputText = it },
+            label = { Text("Nova nota") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Button(
+            onClick = {
+                val trimmed = inputText.trim()
+                if (trimmed.isNotEmpty()) {
+                    scope.launch {
+                        userPreferences.saveNotes(notes + trimmed)
+                        inputText = ""
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Guardar")
+        }
+
+        Button(
+            onClick = {
+                scope.launch {
+                    userPreferences.saveNotes(emptyList())
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Limpar tudo")
+        }
+
+        LazyColumn(
+            modifier = Modifier.weight(1f, fill = true),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            itemsIndexed(notes) { index, note ->
+                Text(text = "${index + 1}. $note")
+            }
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Button(onClick = onBackToMain, modifier = Modifier.weight(1f)) {
+                Text("<-", textAlign = TextAlign.Center)
+            }
+            Text("", modifier = Modifier.weight(1f))
         }
     }
 }

@@ -1,79 +1,63 @@
 package com.notone.protodatastore
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import org.json.JSONArray
 
-private val Context.datastore by preferencesDataStore(name = "settings")
+private val Context.datastore by preferencesDataStore(name = "quicknotes_settings")
 
 class UserPreferences(private val context: Context) {
 
-    private val textKey = stringPreferencesKey(name = "saved_text")
-    private val textKey1 = stringPreferencesKey(name = "saved_text1")
-    private val textKey2 = stringPreferencesKey(name = "saved_text2")
-    private val switchKey = stringPreferencesKey(name = "switch_state")
-    private val numberKey = stringPreferencesKey(name = "saved_number")
+    private val notesJsonKey = stringPreferencesKey(name = "notes_json")
+    private val darkModeKey = booleanPreferencesKey(name = "dark_mode_enabled")
 
-    fun getText(): Flow<String> {
+    fun notesFlow(): Flow<List<String>> {
         return context.datastore.data.map { preferences ->
-            preferences[textKey] ?: ""
+            decodeNotes(preferences[notesJsonKey])
         }
     }
 
-    suspend fun saveText(text: String) {
+    suspend fun saveNotes(notes: List<String>) {
         context.datastore.edit { preferences ->
-            preferences[textKey] = text
+            preferences[notesJsonKey] = encodeNotes(notes)
         }
     }
 
-    fun getText1(): Flow<String> {
+    fun darkModeFlow(): Flow<Boolean> {
         return context.datastore.data.map { preferences ->
-            preferences[textKey1] ?: ""
+            preferences[darkModeKey] ?: false
         }
     }
 
-    suspend fun saveText1(text: String) {
+    suspend fun saveDarkMode(enabled: Boolean) {
         context.datastore.edit { preferences ->
-            preferences[textKey1] = text
+            preferences[darkModeKey] = enabled
         }
     }
 
-    fun getText2(): Flow<String> {
-        return context.datastore.data.map { preferences ->
-            preferences[textKey2] ?: ""
+    private fun decodeNotes(rawJson: String?): List<String> {
+        if (rawJson.isNullOrBlank()) return emptyList()
+
+        return try {
+            val jsonArray = JSONArray(rawJson)
+            List(jsonArray.length()) { index ->
+                jsonArray.optString(index, "")
+            }.filter { it.isNotBlank() }
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 
-    suspend fun saveText2(text: String) {
-        context.datastore.edit { preferences ->
-            preferences[textKey2] = text
+    private fun encodeNotes(notes: List<String>): String {
+        val jsonArray = JSONArray()
+        notes.forEach { note ->
+            jsonArray.put(note)
         }
-    }
-
-    fun getSwitchState(): Flow<Boolean> {
-        return context.datastore.data.map { preferences ->
-            preferences[switchKey]?.toBoolean() ?: false
-        }
-    }
-
-    suspend fun saveSwitchState(state: Boolean) {
-        context.datastore.edit { preferences ->
-            preferences[switchKey] = state.toString()
-        }
-    }
-
-    fun getNumber(): Flow<Int> {
-        return context.datastore.data.map { preferences ->
-            preferences[numberKey]?.toIntOrNull() ?: 0
-        }
-    }
-
-    suspend fun saveNumber(number: Int) {
-        context.datastore.edit { preferences ->
-            preferences[numberKey] = number.toString()
-        }
+        return jsonArray.toString()
     }
 }
