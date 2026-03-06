@@ -12,7 +12,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.ProtoDatastore"> <!-- TEMPO REAL: tema normal -->
+            android:theme="@style/Theme.ProtoDatastore.Splash"> <!-- TEMPO REAL: tema normal -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
