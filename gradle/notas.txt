@@ -1,0 +1,11 @@
+libs.versions.toml:
+- datastore-preferences = "androidx.datastore:datastore-preferences:1.2.0"
+
+build.gradle.kts:
+- implementation(libs.datastore.preferences)
+
+Fazer new kotlin class e chama-la de UserPreferences
+
+Fazer as funções para salvar o texto e ler o texto do DataStore
+
+A seguir ir ao Main Activity e criar uma instância do UserPreferences
