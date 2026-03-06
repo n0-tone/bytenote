@@ -1,6 +1,5 @@
 package com.notone.protodatastore
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,13 +9,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
@@ -46,106 +48,78 @@ class SecondScreenActivity : ComponentActivity() {
                 darkTheme = isDarkMode,
                 dynamicColor = false
             ) {
-                QuickNotesSecondScreen(
+                AddNoteScreen(
                     userPreferences = userPreferences,
-                    isDarkMode = isDarkMode,
-                    onToggleDarkMode = { enabled ->
-                        lifecycleScope.launch {
-                            userPreferences.saveDarkMode(enabled)
-                        }
-                    },
-                    onBackToMain = {
-                        startActivity(Intent(this@SecondScreenActivity, MainActivity::class.java))
-                        finish()
-                    }
+                    onBack = { finish() }
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickNotesSecondScreen(
+private fun AddNoteScreen(
     userPreferences: UserPreferences,
-    isDarkMode: Boolean,
-    onToggleDarkMode: (Boolean) -> Unit,
-    onBackToMain: () -> Unit
+    onBack: () -> Unit
 ) {
     val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var inputText by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "QuickNotes - Ecran 2",
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Dark")
-                Switch(
-                    checked = isDarkMode,
-                    onCheckedChange = onToggleDarkMode
-                )
-            }
-        }
-
-        OutlinedTextField(
-            value = inputText,
-            onValueChange = { inputText = it },
-            label = { Text("Nova nota") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Button(
-            onClick = {
-                val trimmed = inputText.trim()
-                if (trimmed.isNotEmpty()) {
-                    scope.launch {
-                        userPreferences.saveNotes(notes + trimmed)
-                        inputText = ""
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Nova Nota") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Guardar")
+            )
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = { inputText = it },
+                label = { Text("O que tens em mente?") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
 
-        Button(
-            onClick = {
-                scope.launch {
-                    userPreferences.saveNotes(emptyList())
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        val trimmed = inputText.trim()
+                        if (trimmed.isNotEmpty()) {
+                            scope.launch {
+                                userPreferences.saveNotes(notes + trimmed)
+                                onBack() // Volta para a lista após guardar
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Guardar")
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Limpar tudo")
-        }
-
-        LazyColumn(
-            modifier = Modifier.weight(1f, fill = true),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            itemsIndexed(notes) { index, note ->
-                Text(text = "${index + 1}. $note")
+                
+                Button(
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancelar")
+                }
             }
-        }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Button(onClick = onBackToMain, modifier = Modifier.weight(1f)) {
-                Text("<-", textAlign = TextAlign.Center)
-            }
-            Text("", modifier = Modifier.weight(1f))
         }
     }
 }
