@@ -118,19 +118,19 @@ private fun QuickNotesListScreen(
                     .padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(notes) { _, note ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Text(
-                            text = note,
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+            ) {itemsIndexed(notes) { _, note ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Text(
+                        // Substitua 'content' pelo nome do campo que você definiu no seu arquivo .proto
+                        text = note.content,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
+            }
             }
         }
     }
