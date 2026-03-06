@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.enums.UserPreferencesKeysEnum
 import kotlinx.coroutines.launch
 
 class SecondScreenActivity : ComponentActivity() {
@@ -44,7 +45,7 @@ class SecondScreenActivity : ComponentActivity() {
             var savedNumber by remember { mutableStateOf(0) }
 
             LaunchedEffect(Unit) {
-                userPreferences.getNumber().collect { value ->
+                userPreferences.getValue<Int>(UserPreferencesKeysEnum.Number).collect { value ->
                     savedNumber = value
                 }
             }
@@ -76,7 +77,7 @@ class SecondScreenActivity : ComponentActivity() {
                     val number = inputNumber.toIntOrNull()
                     if (number != null) {
                         lifecycleScope.launch {
-                            userPreferences.saveNumber(number)
+                            userPreferences.saveValue<Int>(number, UserPreferencesKeysEnum.Number)
                             inputNumber = ""
                         }
                     }

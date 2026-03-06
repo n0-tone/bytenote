@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.notone.protodatastore.enums.UserPreferencesKeysEnum
 import kotlinx.coroutines.launch
 
 class FirstScreenActivity : ComponentActivity() {
@@ -46,16 +47,16 @@ class FirstScreenActivity : ComponentActivity() {
             var isSavingEnabled by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
-                userPreferences.getSwitchState().collect { state: Boolean ->
+                userPreferences.getValue<Boolean>(UserPreferencesKeysEnum.Switch).collect { state: Boolean ->
                     isSavingEnabled = state
                 }
             }
 
             LaunchedEffect(Unit) {
-                userPreferences.getText1().collect { value: String ->
+                userPreferences.getValue<String>(UserPreferencesKeysEnum.Text_Input_1).collect { value: String ->
                     savedText1 = value
                 }
-                userPreferences.getText2().collect { value: String ->
+                userPreferences.getValue<String>(UserPreferencesKeysEnum.Text_Input_2).collect { value: String ->
                     savedText2 = value
                 }
             }
@@ -94,7 +95,7 @@ class FirstScreenActivity : ComponentActivity() {
                     onCheckedChange = { isChecked ->
                         isSavingEnabled = isChecked
                         lifecycleScope.launch {
-                            userPreferences.saveSwitchState(isChecked)
+                            userPreferences.saveValue<Boolean>(isChecked, UserPreferencesKeysEnum.Switch)
                         }
                     }
                 )
@@ -103,8 +104,8 @@ class FirstScreenActivity : ComponentActivity() {
                 Button(onClick = {
                     if (isSavingEnabled) {
                         lifecycleScope.launch {
-                            userPreferences.saveText1(inputText1)
-                            userPreferences.saveText2(inputText2)
+                            userPreferences.saveValue<String>(inputText1,UserPreferencesKeysEnum.Text_Input_1)
+                            userPreferences.saveValue<String>(inputText2, UserPreferencesKeysEnum.Text_Input_2)
                         }
                     }
                 }) {

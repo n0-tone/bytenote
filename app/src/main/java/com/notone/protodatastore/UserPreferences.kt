@@ -1,9 +1,12 @@
 package com.notone.protodatastore
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.notone.protodatastore.enums.UserPreferencesKeysEnum
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -11,69 +14,93 @@ private val Context.datastore by preferencesDataStore(name = "settings")
 
 class UserPreferences(private val context: Context) {
 
-    private val textKey = stringPreferencesKey(name = "saved_text")
-    private val textKey1 = stringPreferencesKey(name = "saved_text1")
-    private val textKey2 = stringPreferencesKey(name = "saved_text2")
-    private val switchKey = stringPreferencesKey(name = "switch_state")
-    private val numberKey = stringPreferencesKey(name = "saved_number")
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> getValue(userPreferencesKeysEnum: UserPreferencesKeysEnum): Flow<T> {
 
-    fun getText(): Flow<String> {
-        return context.datastore.data.map { preferences ->
-            preferences[textKey] ?: ""
+        return when (userPreferencesKeysEnum.type) {
+            String::class -> {
+                getString(userPreferencesKeysEnum) as Flow<T>
+            }
+
+            Boolean::class -> {
+                getBoolean(userPreferencesKeysEnum) as Flow<T>
+            }
+
+            Int::class -> {
+                getInteger(userPreferencesKeysEnum) as Flow<T>
+            }
+
+            else -> {
+                throw IllegalArgumentException("Type not supported")
+            }
         }
     }
 
-    suspend fun saveText(text: String) {
+    suspend fun <T : Any> saveValue(value: T, userPreferenceEnum: UserPreferencesKeysEnum) {
+        if (value::class == userPreferenceEnum.type) {
+            throw IllegalArgumentException("Type not supported")
+        }
+        when (userPreferenceEnum.type) {
+            String::class -> {
+                saveString(value as String, userPreferenceEnum)
+            }
+
+            Boolean::class -> {
+                saveBoolean(value as Boolean, userPreferenceEnum)
+            }
+
+            Int::class -> {
+                saveInteger(value as Int, userPreferenceEnum)
+            }
+        }
+
+    }
+
+    private suspend fun saveString(
+        value: String,
+        userPreferencesKeysEnum: UserPreferencesKeysEnum
+    ) {
+        val key = stringPreferencesKey(userPreferencesKeysEnum.value)
         context.datastore.edit { preferences ->
-            preferences[textKey] = text
+            preferences[key] = value
         }
     }
 
-    fun getText1(): Flow<String> {
-        return context.datastore.data.map { preferences ->
-            preferences[textKey1] ?: ""
-        }
-    }
-
-    suspend fun saveText1(text: String) {
+    private suspend fun saveBoolean(
+        value: Boolean,
+        userPreferencesKeysEnum: UserPreferencesKeysEnum
+    ) {
+        val key = booleanPreferencesKey(userPreferencesKeysEnum.value)
         context.datastore.edit { preferences ->
-            preferences[textKey1] = text
+            preferences[key] = value
         }
     }
 
-    fun getText2(): Flow<String> {
-        return context.datastore.data.map { preferences ->
-            preferences[textKey2] ?: ""
-        }
-    }
-
-    suspend fun saveText2(text: String) {
+    private suspend fun saveInteger(value: Int, userPreferencesKeysEnum: UserPreferencesKeysEnum) {
+        val key = intPreferencesKey(userPreferencesKeysEnum.value)
         context.datastore.edit { preferences ->
-            preferences[textKey2] = text
+            preferences[key] = value
         }
     }
 
-    fun getSwitchState(): Flow<Boolean> {
+    private fun getString(userPreferencesKeysEnum: UserPreferencesKeysEnum): Flow<String> {
+        val key = stringPreferencesKey(userPreferencesKeysEnum.value)
         return context.datastore.data.map { preferences ->
-            preferences[switchKey]?.toBoolean() ?: false
+            preferences[key] ?: ""
         }
     }
 
-    suspend fun saveSwitchState(state: Boolean) {
-        context.datastore.edit { preferences ->
-            preferences[switchKey] = state.toString()
-        }
-    }
-
-    fun getNumber(): Flow<Int> {
+    private fun getBoolean(userPreferencesKeysEnum: UserPreferencesKeysEnum): Flow<Boolean> {
+        val key = booleanPreferencesKey(userPreferencesKeysEnum.value)
         return context.datastore.data.map { preferences ->
-            preferences[numberKey]?.toIntOrNull() ?: 0
+            preferences[key] ?: false
         }
     }
 
-    suspend fun saveNumber(number: Int) {
-        context.datastore.edit { preferences ->
-            preferences[numberKey] = number.toString()
+    private fun getInteger(userPreferencesKeysEnum: UserPreferencesKeysEnum): Flow<Int> {
+        val key = intPreferencesKey(userPreferencesKeysEnum.value)
+        return context.datastore.data.map { preferences ->
+            preferences[key] ?: 0
         }
     }
 }
