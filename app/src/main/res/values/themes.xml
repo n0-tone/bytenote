@@ -4,6 +4,6 @@
     <style name="Theme.ProtoDatastore" parent="android:Theme.Material.NoActionBar" />
 
     <style name="Theme.ProtoDatastore.Splash" parent="Theme.ProtoDatastore">
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowBackground">@android:color/white</item>
     </style>
 </resources>
