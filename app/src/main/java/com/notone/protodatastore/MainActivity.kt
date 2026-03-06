@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,16 +61,21 @@ class MainActivity : ComponentActivity() {
     private lateinit var userPreferences: UserPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // 1️Instala a splash screen Android 12+ antes de setContent
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
         userPreferences = UserPreferences(this)
+
+        // 2️⃣ Mantém a splash enquanto carregas dados
+        splashScreen.setKeepOnScreenCondition {
+            // mantém até os dados carregarem
+            false
+        }
 
         setContent {
             val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
-
-            ProtoDatastoreTheme(
-                darkTheme = isDarkMode,
-                dynamicColor = false
-            ) {
+            ProtoDatastoreTheme(darkTheme = isDarkMode) {
                 QuickNotesMainScreen(
                     isDarkMode = isDarkMode,
                     userPreferences = userPreferences,

@@ -1,12 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ProtoDatastore" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.ProtoDatastore" parent="Theme.Material3.DayNight.NoActionBar" />
 
     <style name="Theme.ProtoDatastore.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#121212</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_note_splash</item>
-        <item name="windowSplashScreenIconBackgroundColor">#121212</item>
         <item name="postSplashScreenTheme">@style/Theme.ProtoDatastore</item>
     </style>
 

@@ -61,4 +61,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.datastore.preferences)
     implementation("androidx.core:core-splashscreen:1.2.0")
+    implementation("com.google.android.material:material:1.13.0")
 }
