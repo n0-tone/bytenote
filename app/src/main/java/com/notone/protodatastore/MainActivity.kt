@@ -2,113 +2,163 @@ package com.notone.protodatastore
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
+import coil3.compose.AsyncImage
+import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 
-@Suppress("DEPRECATION")
 class MainActivity : ComponentActivity() {
 
     private lateinit var userPreferences: UserPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
-        actionBar?.hide()
-
         userPreferences = UserPreferences(this)
 
-        enableEdgeToEdge()
         setContent {
-            // State variables to hold text input and saved text
-            var inputText by remember { mutableStateOf("") }
-            var savedText by remember { mutableStateOf("") }
+            val isDarkMode by userPreferences.darkModeFlow().collectAsState(initial = false)
 
-            // Observe saved text from DataStore
-            LaunchedEffect(key1 = Unit) {
-                userPreferences.getText().collect { value ->
-                    savedText = value // Update stored value whenever DataStore is updated
-                }
+            ProtoDatastoreTheme(
+                darkTheme = isDarkMode,
+                dynamicColor = false
+            ) {
+                QuickNotesMainScreen(
+                    isDarkMode = isDarkMode,
+                    userPreferences = userPreferences,
+                    onToggleDarkMode = { enabled ->
+                        lifecycleScope.launch {
+                            userPreferences.saveDarkMode(enabled)
+                        }
+                    },
+                    onOpenAddNote = {
+                        startActivity(Intent(this@MainActivity, SecondScreenActivity::class.java))
+                    }
+                )
             }
+        }
+    }
+}
 
-            Column(
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickNotesMainScreen(
+    isDarkMode: Boolean,
+    userPreferences: UserPreferences,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onOpenAddNote: () -> Unit
+) {
+    val notes by userPreferences.notesFlow().collectAsState(initial = emptyList())
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("QuickNotes") },
+                actions = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Dark", style = MaterialTheme.typography.bodyMedium)
+                        Switch(
+                            checked = isDarkMode,
+                            onCheckedChange = onToggleDarkMode
+                        )
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onOpenAddNote) {
+                Icon(Icons.Default.Add, contentDescription = "Adicionar Nota")
+            }
+        }
+    ) { paddingValues ->
+        if (notes.isEmpty()) {
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
             ) {
-                // Display saved text
                 Text(
-                    text = "Saved Text: $savedText",
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    text = "Ainda sem notas.",
+                    style = MaterialTheme.typography.bodyLarge
                 )
-
-                // Text input field
-                BasicTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    modifier = Modifier.padding(8.dp)
-                        .border(1.dp, Color.Gray)
-                        .padding(8.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(onClick = {
-                    lifecycleScope.launch {
-                        userPreferences.saveText(inputText)
-                    }
-                }) {
-                    Text("Save Text")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(onClick = {
-                        val intent = Intent(this@MainActivity, SecondScreenActivity::class.java)
-                        startActivity(intent)
-                    }) {
-                        Text("← Second Screen")
-                    }
-
-                    Button(onClick = {
-                        val intent = Intent(this@MainActivity, FirstScreenActivity::class.java)
-                        startActivity(intent)
-                    }) {
-                        Text("First Screen →")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                itemsIndexed(notes) { _, note ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            if (note.title.isNotEmpty()) {
+                                Text(
+                                    text = note.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+                            Text(
+                                text = note.content,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            note.imageUri?.let { uri ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(150.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
                     }
                 }
             }
