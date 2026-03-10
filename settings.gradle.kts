@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ProtoDatastore"
+rootProject.name = "ByteNote"
 include(":app")
