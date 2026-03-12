@@ -5,22 +5,35 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +47,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,6 +65,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.notone.protodatastore.classes.NotesService
@@ -65,18 +81,13 @@ class MainActivity : ComponentActivity() {
     private lateinit var notesService : NotesService
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Instala a splash screen Android 12+ antes de setContent
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         userService = UserPreferencesService(this)
         notesService = NotesService(this)
 
-        // Mantém a splash enquanto carregas dados
-        splashScreen.setKeepOnScreenCondition {
-            // mantém até os dados carregarem
-            false
-        }
+        splashScreen.setKeepOnScreenCondition { false }
 
         setContent {
             val isDarkMode by userService.getDarkMode().collectAsState(initial = false)
@@ -125,18 +136,31 @@ private fun QuickNotesMainScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ByteNotes") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                ),
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "ByteNote",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = onToggleDarkMode) {
                         val modeIcon = if (isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode
-                        val description = if (isDarkMode) "Ativar modo claro" else "Ativar modo escuro"
-                        Icon(modeIcon, contentDescription = description)
+                        Icon(modeIcon, contentDescription = "Alternar Tema")
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onOpenAddNote) {
+            FloatingActionButton(
+                onClick = onOpenAddNote,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "Nova nota")
             }
         }
@@ -159,7 +183,7 @@ private fun QuickNotesMainScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 itemsIndexed(
                     items = notes,
@@ -197,8 +221,18 @@ private fun NoteRow(
     onDelete: () -> Unit,
     onMove: (Int, Int) -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
     var itemHeightPx by remember { mutableIntStateOf(1) }
     var dragAccumulator by remember { mutableFloatStateOf(0f) }
+
+    val extraPadding by animateDpAsState(
+        targetValue = if (expanded) 24.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "paddingAnimation"
+    )
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -222,23 +256,17 @@ private fun NoteRow(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(if (showDeleteBackground) MaterialTheme.colorScheme.errorContainer else Color.Transparent)
+                    .padding(vertical = 4.dp)
+                    .background(if (showDeleteBackground) MaterialTheme.colorScheme.errorContainer else Color.Transparent, MaterialTheme.shapes.medium)
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 if (showDeleteBackground) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = "Apagar nota",
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = "Apagar",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Apagar nota",
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 }
             }
         },
@@ -246,6 +274,7 @@ private fun NoteRow(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .animateContentSize()
                     .onSizeChanged { itemHeightPx = it.height.coerceAtLeast(1) }
                     .pointerInput(index, total, itemHeightPx) {
                         detectDragGesturesAfterLongPress(
@@ -267,43 +296,45 @@ private fun NoteRow(
                             }
                         )
                     }
-                    .padding(vertical = 1.dp),
+                    .clickable { expanded = !expanded },
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.onSurface
-                )
+                ),
+                shape = MaterialTheme.shapes.medium
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        androidx.compose.foundation.layout.Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = note.title,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = note.content,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 3
-                            )
-                        }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(bottom = extraPadding.coerceAtLeast(0.dp))
+                    ) {
+                        Text(
+                            text = note.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = note.content,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = if (expanded) Int.MAX_VALUE else 2
+                        )
                     }
-                    Text(
-                        text = "::",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(start = 12.dp)
-                    )
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = if (expanded) "Ver menos" else "Ver mais"
+                        )
+                    }
                 }
             }
         },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp)
+        modifier = Modifier.fillMaxWidth()
     )
 }
