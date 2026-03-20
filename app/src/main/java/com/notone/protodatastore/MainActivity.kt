@@ -52,6 +52,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -188,9 +189,12 @@ private fun QuickNotesMainScreen(
                         index = index,
                         total = notes.size,
                         onDelete = {
-                            val updated = notes.toMutableList().apply { removeAt(index) }
-                            persistNotes(updated)
-                            Toast.makeText(context, "Nota apagada", Toast.LENGTH_SHORT).show()
+                            val currentNotes = notes
+                            val updated = currentNotes.filter { it.id != note.id }
+                            if (updated.size < currentNotes.size) {
+                                persistNotes(updated)
+                                Toast.makeText(context, "Nota apagada", Toast.LENGTH_SHORT).show()
+                            }
                         },
                         onMove = { from, to ->
                             if (from == to || from !in notes.indices || to !in notes.indices) return@NoteRow
@@ -215,6 +219,9 @@ private fun NoteRow(
     onDelete: () -> Unit,
     onMove: (Int, Int) -> Unit
 ) {
+    val currentOnDelete by rememberUpdatedState(onDelete)
+    val currentOnMove by rememberUpdatedState(onMove)
+
     var expanded by remember { mutableStateOf(false) }
     var itemHeightPx by remember { mutableIntStateOf(1) }
     var dragAccumulator by remember { mutableFloatStateOf(0f) }
@@ -231,7 +238,7 @@ private fun NoteRow(
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
+                currentOnDelete()
                 true
             } else {
                 false
@@ -281,10 +288,10 @@ private fun NoteRow(
                                 val threshold = itemHeightPx * 0.6f
 
                                 if (dragAccumulator > threshold && index < total - 1) {
-                                    onMove(index, index + 1)
+                                    currentOnMove(index, index + 1)
                                     dragAccumulator = 0f
                                 } else if (dragAccumulator < -threshold && index > 0) {
-                                    onMove(index, index - 1)
+                                    currentOnMove(index, index - 1)
                                     dragAccumulator = 0f
                                 }
                             }
