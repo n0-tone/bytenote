@@ -1,4 +1,4 @@
-package com.notone.protodatastore.ui.theme
+package com.notone.preferences.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

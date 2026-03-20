@@ -1,4 +1,4 @@
-package com.notone.protodatastore.ui.theme
+package com.notone.preferences.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

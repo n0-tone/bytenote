@@ -1,4 +1,4 @@
-package com.notone.protodatastore
+package com.notone.preferences
 
 import org.junit.Test
 

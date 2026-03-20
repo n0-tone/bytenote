@@ -1,8 +1,8 @@
-package com.notone.protodatastore.classes
+package com.notone.preferences.classes
 
 import android.content.Context
-import com.notone.protodatastore.core.PreferencesService
-import com.notone.protodatastore.enums.PreferencesKeysEnum
+import com.notone.preferences.core.PreferencesService
+import com.notone.preferences.enums.PreferencesKeysEnum
 import kotlinx.coroutines.flow.Flow
 
 class UserPreferencesService(private val context: Context) {

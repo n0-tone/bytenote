@@ -1,4 +1,4 @@
-package com.notone.protodatastore.models
+package com.notone.preferences.models
 
 data class Note(
     val id : Long,

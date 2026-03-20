@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.notone.protodatastore"
+    namespace = "com.notone.preferences"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.notone.protodatastore"
+        applicationId = "com.notone.com.notone.preferences"
         minSdk = 31
         targetSdk = 36
         versionCode = 1

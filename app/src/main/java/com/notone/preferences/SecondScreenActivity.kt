@@ -1,4 +1,4 @@
-package com.notone.protodatastore
+package com.notone.preferences
 
 import android.os.Bundle
 import android.widget.Toast
@@ -37,10 +37,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import com.notone.protodatastore.classes.NotesService
-import com.notone.protodatastore.classes.UserPreferencesService
-import com.notone.protodatastore.models.Note
-import com.notone.protodatastore.ui.theme.ProtoDatastoreTheme
+import com.notone.preferences.classes.NotesService
+import com.notone.preferences.classes.UserPreferencesService
+import com.notone.preferences.models.Note
+import com.notone.preferences.ui.theme.ProtoDatastoreTheme
 import kotlinx.coroutines.launch
 
 class SecondScreenActivity : ComponentActivity() {

@@ -1,4 +1,4 @@
-package com.notone.protodatastore
+package com.notone.preferences
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.notone.protodatastore", appContext.packageName)
+        assertEquals("com.notone.com.notone.preferences", appContext.packageName)
     }
 }

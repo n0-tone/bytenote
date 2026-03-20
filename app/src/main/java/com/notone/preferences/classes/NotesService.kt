@@ -1,9 +1,9 @@
-package com.notone.protodatastore.classes
+package com.notone.preferences.classes
 
 import android.content.Context
-import com.notone.protodatastore.core.PreferencesService
-import com.notone.protodatastore.enums.PreferencesKeysEnum
-import com.notone.protodatastore.models.Note
+import com.notone.preferences.core.PreferencesService
+import com.notone.preferences.enums.PreferencesKeysEnum
+import com.notone.preferences.models.Note
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
